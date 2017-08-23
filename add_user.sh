@@ -1,7 +1,7 @@
 #!/bin/bash
 usage()
 {
-    echo "Usage: $0 -u <username> -g <group> [-s]"
+    echo "Usage: $0 -u <username> -g <group> [-e <days>] [-s]"
     exit 1
 }
 if [ "$#" -lt 4 ]
@@ -10,16 +10,17 @@ then
 fi
 
 # get username / group
-while getopts u:g:s option
+while getopts u:g:e:s option
 do
     case "${option}" in
     u) USER=${OPTARG};;
     g) GROUP=${OPTARG};;
+    e) EXPIRE=${OPTARG};;
     s) SUDO=true;;
     esac
 done
 
-if [ "$USER" = "" -o "$GROUP" = "" ]
+if [ "$USER" = "" -o "$GROUP" = "" ] || [[ ! $EXPIRE =~ ^[0-9]*$ ]]
 then
     usage
 fi
@@ -45,6 +46,15 @@ then
 fi
 
 # create Linux user
+if [ "$EXPIRE" = "" ]
+then
+    echo "Creating Linux user $USER"
+    ERRMSG=`sudo useradd -m -p $PSWDcrypt -g $GROUP $USER 2>&1`
+else
+    EXPIRE_DATE=$(date +"%F" -d "+$EXPIRE days")
+    echo "Creating Linux user $USER (EXPIRE_DATE: $EXPIRE_DATE)"
+    ERRMSG=`sudo useradd -m -p $PSWDcrypt -g $GROUP -e $EXPIRE_DATE $USER 2>&1`
+fi
 echo "Creating Linux user $USER"
 ERRMSG=`sudo useradd -m -p $PSWDcrypt -g $GROUP $USER 2>&1`
 if [ $? -ne 0 ]
@@ -77,7 +87,7 @@ echo "Creating HDFS directory for user $USER"
 ERRMSG=`hadoop fs -mkdir /user/$USER 2>&1`
 if [ $? -ne 0 ]
 then
-    log="Failed to create HDFS $USER"
+    log="Failed to create HDFS $USER ($ERRMSG)"
     echo "$log"
 else
     log="Created HDFS $USER"
@@ -87,7 +97,7 @@ echo -e "[$(date +"%F %T")] $log" >> $LOGFILE
 ERRMSG=`hadoop fs -chown -R $USER:$GROUP /user/$USER 2>&1`
 if [ $? -ne 0 ] 
 then
-    log="Failed to change HDFS permission $USER"
+    log="Failed to change HDFS permission $USER ($ERRMSG)"
     echo "$log"
     echo -e "[$(date +"%F %T")] $log" >> $LOGFILE 
 fi
