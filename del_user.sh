@@ -9,6 +9,9 @@ then
     usage
 fi
 
+# user to delete
+USER=$1
+
 # create log file
 LOGFILE="users.log"
 if [ ! -e $LOGFILE ]
@@ -17,19 +20,16 @@ then
     chmod 600 $LOGFILE
 fi
 
-# user to delete
-USER=$1
-
 # delete HDFS directory
 echo "Deleting HDFS for user $USER"
 ERRMSG=`hadoop fs -rm -r /user/$USER 2>&1`
 if [ $? -ne 0 ]
 then
     log="Failed to delete HDFS $USER ($ERRMSG)"
-    echo "Failed to delete HDFS dir for $USER."
+    echo "$log"
 else
     log="Deleted HDFS $USER"
-    echo "HDFS dir for $USER has been sucessfully deleted."
+    echo "$log"
 fi
 echo -e "[$(date +"%F %T")] $log" >> $LOGFILE
 
@@ -39,9 +39,10 @@ ERRMSG=`sudo userdel -r $USER 2>&1`
 if [ $? -ne 0 ]
 then
     log="Failed to delete user $USER ($ERRMSG)"
-    echo "Failed to delete user $USER."
+    echo "$log"
 else
     log="Deleted user $USER"
-    echo "User $USER has been sucessfully deleted."
+    echo "$log"
 fi
-echo -e "[$(date +"%F %T")] $log" >> $LOGFILE 
+echo -e "[$(date +"%F %T")] $log" >> $LOGFILE
+
