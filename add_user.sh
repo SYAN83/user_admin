@@ -55,8 +55,7 @@ else
     echo "Creating Linux user $USER (EXPIRE_DATE: $EXPIRE_DATE)"
     ERRMSG=`sudo useradd -m -p $PSWDcrypt -g $GROUP -e $EXPIRE_DATE $USER 2>&1`
 fi
-echo "Creating Linux user $USER"
-ERRMSG=`sudo useradd -m -p $PSWDcrypt -g $GROUP $USER 2>&1`
+
 if [ $? -ne 0 ]
 then
     log="Failed to create user $USER ($ERRMSG)"
@@ -68,6 +67,7 @@ else
 fi
 echo -e "[$(date +"%F %T")] $log" >> $LOGFILE 
 
+# add user to admin
 if [ $SUDO ]
 then
     ERRMSG=`sudo usermod -aG admin $USER 2>&1`
@@ -85,6 +85,7 @@ fi
 # create HDFS directory
 echo "Creating HDFS directory for user $USER"
 ERRMSG=`hadoop fs -mkdir /user/$USER 2>&1`
+
 if [ $? -ne 0 ]
 then
     log="Failed to create HDFS $USER ($ERRMSG)"
@@ -93,8 +94,11 @@ else
     log="Created HDFS $USER"
     echo "$log"
 fi
+
+# change HDFS permission
 echo -e "[$(date +"%F %T")] $log" >> $LOGFILE 
 ERRMSG=`hadoop fs -chown -R $USER:$GROUP /user/$USER 2>&1`
+
 if [ $? -ne 0 ] 
 then
     log="Failed to change HDFS permission $USER ($ERRMSG)"
